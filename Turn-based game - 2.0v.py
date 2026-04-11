@@ -41,10 +41,10 @@ class Combatant(ABC):
         
         if self.bleed_duration <= 0:
             self.bleeding = False
-            print(f"Bleeding has stopped for {self}.")
+            print(f"\nBleeding has stopped for {self}.")
         
         if self.stunned:
-            print(f"{self.name} is still dazed! Turn is skipped")
+            print(f"\n{self.name} is still dazed! Turn is skipped")
             self.stunned = False
             return False
         return True
@@ -56,7 +56,7 @@ class Combatant(ABC):
         damage = r.randint(int(self.max_damage/2), self.max_damage) * modifier
         actual_dmg = round(opponent.dmg_mult * damage * 1.5 if is_crit else opponent.dmg_mult * damage)
         opponent.health -= actual_dmg
-        output_msg = f"{self.name} attacks for {actual_dmg} damage!"
+        output_msg = f"\n{self.name} attacks for {actual_dmg} damage!"
 
         if opponent.parrying:
             reflected_dmg = ((1.0 - opponent.dmg_mult)/2)*damage
@@ -90,7 +90,7 @@ class Combatant(ABC):
         elif 30 <= success_rate <= 65:
             #block half the damage received and return a quarter
             self.dmg_mult = 0.5
-        return f"{self.name} braces for an impact..."
+        return f"\n{self.name} braces for an impact..."
     
     @abstractmethod
     def signature(self, opponent) -> str:
@@ -121,12 +121,12 @@ class Tank(Combatant):
                 opponent.parrying = False
                 opponent.dmg_mult = 1
 
-                return f"{opponent.name} is stunned for 1 turn!"
+                return f"\n{opponent.name} is stunned for 1 turn!"
             else:
-                return "Stun failed!"
+                return "\nStun failed!"
             
         else:
-            return f"Signature is still in cooldown! {self.sig_cd} turn(s) left"
+            return f"\nSignature is still in cooldown! {self.sig_cd} turn(s) left"
 
 
 class Assassin(Combatant):
@@ -147,13 +147,42 @@ class Assassin(Combatant):
                 opponent.bleeding = True if r.randint(1, 10) > 1 else False
                 opponent.bleed_duration = 3
                 if opponent.bleeding:
-                    return f"Successful slash! {opponent.name} starts to lose blood..."
+                    return f"\nSuccessful slash! {opponent.name} starts to lose blood..."
                 else:
-                    return "Slashing failed! No bleeding inflicted."
+                    return "\nSlashing failed! No bleeding inflicted."
             else:
                 return self.attack(opponent, 0.7)
         else:
-            return f"Signature is still in cooldown! {self.sig_cd} turn(s) left."
+            return f"\nSignature is still in cooldown! {self.sig_cd} turn(s) left."
+        
+class Berserker(Combatant):
+    def __init__(self, name):
+        super().__init__(name)
+        self.classtype = "Berserker"
+        self.start_health = r.randint(120, 140)
+        self.health = self.start_health
+        self.max_damage = 35
+        self.crit_rate = 10
+        self.parry_success = [0, 60]
+
+    def signature(self, opponent) -> str:
+        """Berserker goes brrrr"""
+        if self.sig_cd == 0:
+            self.sig_cd = 3
+            if opponent.parrying == True:
+                opponent.parrying = False
+                opponent.dmg_mult = 1
+            
+            smash = True if r.randint(1,10) > 5 else False
+            if smash:
+                smash_dmg = 2 * self.max_damage
+                opponent.health -= smash_dmg
+                return f"\nEffective Smash! {smash_dmg} damage done!"
+            else:
+                health_loss = self.max_damage
+                self.health -= health_loss
+                return f"\nMiss! {self.name} injured himself by {health_loss}!"
+            
         
 
 character1 = Assassin("James")
@@ -164,7 +193,7 @@ character2 = Tank("Diddler")
 def start_battle(player1: Combatant, player2: Combatant) -> str:
     turn, waiter = (player1, player2) if r.random() > 0.5 else (player2, player1)
 
-    print(f"The battle begins! {turn.name} starts first...")
+    print(f"\nThe battle begins! {turn.name} starts first...")
 
     while turn.health > 0 and waiter.health > 0:
         if not turn.preturn_check():
@@ -173,21 +202,21 @@ def start_battle(player1: Combatant, player2: Combatant) -> str:
 
         move = input(f"{turn.name}'s turn ({turn.classtype})- {turn.health} HP - [ 1 to attack, 2 to parry, 3 for your signature ]: ")
         if move == "1":
-            print(turn.attack(waiter))
+            return turn.attack(waiter)
         elif move == "2":
-            print(turn.parry(waiter))
+            return turn.parry(waiter)
         elif move == "3":
-            print(turn.signature(waiter))
+            return turn.signature(waiter)
         else:
-            print("Invalid input! Please key in 1 (attack), 2 (parry), or 3 (parry)")
+            return "\nInvalid input! Please key in 1 (attack), 2 (parry), or 3 (parry)"
 
         turn, waiter = waiter, turn
         
   
     if turn.health <= 0:
-        return f"{waiter.name} won! Hooray!"
+        return f"\n{waiter.name} won! Hooray!"
     
-    return "wait what how are you seeing this??"
+    return "\nwait what how are you seeing this??"
 
 battle = start_battle(character1, character2)
     
